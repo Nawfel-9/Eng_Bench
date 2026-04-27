@@ -46,7 +46,7 @@ def _image_to_data_uri(image_path: str) -> str:
 
 def _get_chat_handler(handler_name: str, mmproj_path: Path):
     """Dynamically import and instantiate a llama-cpp-python chat handler."""
-    import llama_cpp.llama_chat_format as fmt  # noqa: E402
+    import llama_cpp.llama_chat_format as fmt  # type: ignore # noqa: E402
 
     handler_cls = getattr(fmt, handler_name, None)
     if handler_cls is None:

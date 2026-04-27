@@ -109,18 +109,18 @@ Each model directory contains:
 
 ## Supported Models
 
-All models are loaded through a single `LlamaCppRunner` using `llama-cpp-python`.
+All models are loaded through a single `LlamaCppRunner` using `llama-cpp-python`. The default quantization levels shown below are optimized specifically for an **RTX 5060 Ti with 16 GB VRAM**, maximizing quality while safely avoiding out-of-memory errors.
 
 | Key         | Display Name              | Parameters | Default Quant | Chat Handler             | HuggingFace GGUF Repo                                          |
 |-------------|---------------------------|------------|---------------|--------------------------|------------------------------------------------------------------|
-| `phi35v`    | Phi-3.5-Vision-Instruct   | 3.8 B      | Q4\_K\_M      | Llava15ChatHandler       | `abetlen/Phi-3.5-vision-instruct-gguf`                          |
-| `gemma4e4b` | Gemma 4 E4B               | ~4 B eff.  | Q4\_K\_M      | Gemma4ChatHandler        | `ggml-org/gemma-4-E4B-it-GGUF`                                  |
-| `minicpmv`  | MiniCPM-V 2.6 8B          | 8 B        | Q4\_K\_M      | MiniCPMv26ChatHandler    | `openbmb/MiniCPM-V-2_6-gguf`                                    |
-| `qwen25vl`  | Qwen2.5-VL 7B Instruct    | 7 B        | Q4\_K\_M      | Qwen25VLChatHandler      | `ggml-org/Qwen2.5-VL-7B-Instruct-GGUF`                          |
-| `internvl3` | InternVL3 8B Instruct      | 8 B        | Q4\_K\_M      | Llava15ChatHandler       | `ggml-org/InternVL3-8B-Instruct-GGUF`                           |
-| `glm4v`     | GLM-4.1V-9B-Thinking      | 9 B        | Q4\_K\_M      | Llava15ChatHandler       | `mradermacher/GLM-4.1V-9B-Thinking-GGUF`                        |
-| `llama32v`  | Llama 3.2 Vision 11B      | 11 B       | Q4\_K\_M      | Llava15ChatHandler       | `ggml-org/Llama-3.2-11B-Vision-Instruct-GGUF`                   |
-| `pixtral`   | Pixtral 12B               | 12 B       | Q4\_K\_M      | Llava15ChatHandler       | `ggml-org/pixtral-12b-GGUF`                                     |
+| `phi35v`    | Phi-3.5-Vision-Instruct   | 3.8 B      | Q8\_0         | Llava15ChatHandler       | `abetlen/Phi-3.5-vision-instruct-gguf`                          |
+| `gemma4e4b` | Gemma 4 E4B               | ~4 B eff.  | Q8\_0         | Gemma4ChatHandler        | `ggml-org/gemma-4-E4B-it-GGUF`                                  |
+| `minicpmv`  | MiniCPM-V 2.6 8B          | 8 B        | Q8\_0         | MiniCPMv26ChatHandler    | `openbmb/MiniCPM-V-2_6-gguf`                                    |
+| `qwen25vl`  | Qwen2.5-VL 7B Instruct    | 7 B        | Q8\_0         | Qwen25VLChatHandler      | `ggml-org/Qwen2.5-VL-7B-Instruct-GGUF`                          |
+| `internvl3` | InternVL3 8B Instruct     | 8 B        | Q8\_0         | Llava15ChatHandler       | `ggml-org/InternVL3-8B-Instruct-GGUF`                           |
+| `glm4v`     | GLM-4.1V-9B-Thinking      | 9 B        | Q8\_0         | Llava15ChatHandler       | `mradermacher/GLM-4.1V-9B-Thinking-GGUF`                        |
+| `llama32v`  | Llama 3.2 Vision 11B      | 11 B       | Q5\_K\_M      | Llava15ChatHandler       | `ggml-org/Llama-3.2-11B-Vision-Instruct-GGUF`                   |
+| `pixtral`   | Pixtral 12B               | 12 B       | Q5\_K\_M      | Llava15ChatHandler       | `ggml-org/pixtral-12b-GGUF`                                     |
 
 ### Quantisation Options
 
@@ -164,6 +164,8 @@ pip install pandas tqdm pillow scikit-learn matplotlib seaborn rouge-score nltk
 
 GGUF model files are downloaded from HuggingFace and stored at `F:\Models\LLAMA\`.
 
+> **Note:** If you want to download models to a different directory, you must update the `MODELS_ROOT` constant in `models/registry.py` before running the download script or the benchmark.
+
 ### Option A: Run the master download script
 
 ```powershell
@@ -192,6 +194,12 @@ python scripts/download_models.py --output scripts/download_all_models.ps1  # wr
 ---
 
 ## Dataset Preparation
+
+**FOR NOW**, the benchmark uses data hosted on Hugging Face at [https://huggingface.co/datasets/afdsafas/EEE-Bench](https://huggingface.co/datasets/afdsafas/EEE-Bench). You can download it by running:
+
+```bash
+python scripts/download_EEE_Bench.py
+```
 
 These one-time scripts prepare the EEE\_Bench dataset for benchmarking.
 

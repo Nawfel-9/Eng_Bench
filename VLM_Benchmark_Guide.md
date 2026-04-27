@@ -95,6 +95,12 @@ pip install pandas tqdm pillow scikit-learn matplotlib seaborn rouge-score nltk
 
 ## 4. Dataset Preparation (EEE_Bench)
 
+**FOR NOW**, the benchmark uses data hosted on Hugging Face at [https://huggingface.co/datasets/afdsafas/EEE-Bench](https://huggingface.co/datasets/afdsafas/EEE-Bench). You can download it by running:
+
+```bash
+python scripts/download_EEE_Bench.py
+```
+
 These one-time scripts build and validate the dataset index.
 
 ### 4.1 Build the unified index
@@ -157,6 +163,8 @@ The `default_quant` per model is chosen as the highest quality level whose total
 ## 6. Downloading Models (GGUF)
 
 GGUF files are downloaded from HuggingFace and stored at `F:\Models\LLAMA\`.
+
+> **Note:** If you want to download models to a different directory, you must update the `MODELS_ROOT` constant in `models/registry.py` before running the download script or the benchmark.
 
 ### Option A: Run the master download script
 

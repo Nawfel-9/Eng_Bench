@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+# Ignore raw model outputs to save repo space, but keep aggregated CSVs
+results/
+EEE_Bench/
+# Ignore downloaded models (just in case they are placed in the repo)
+*.gguf
+
+# OS files
+.DS_Store
+Thumbs.db

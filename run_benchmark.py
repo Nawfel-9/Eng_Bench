@@ -29,6 +29,7 @@ from models.registry import (
     resolve_model_paths,
 )
 from scripts.benchmark_utils import build_prompt, extract_final_answer
+from prompts.task_prompts import SYSTEM_PROMPT
 
 
 # ─── Helpers ──────────────────────────────────────────────────────────
@@ -112,6 +113,10 @@ class LlamaCppRunner:
         response = self.llm.create_chat_completion(
             messages=[
                 {
+                    "role": "system",
+                    "content": SYSTEM_PROMPT,
+                },
+                {
                     "role": "user",
                     "content": [
                         {
@@ -123,7 +128,7 @@ class LlamaCppRunner:
                             "text": prompt,
                         },
                     ],
-                }
+                },
             ],
             max_tokens=self.max_tokens,
             temperature=self.temperature,

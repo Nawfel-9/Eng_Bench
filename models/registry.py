@@ -64,7 +64,7 @@ MODEL_REGISTRY = {
         "display_name": "Gemma 4 E4B",
         "model_dir": "gemma-4-E4B-it",
         "gguf_file": "gemma-4-E4B-it-{quant}.gguf",
-        "mmproj_file": "mmproj-gemma-4-E4B-it-f16.gguf",
+        "mmproj_file": "mmproj-gemma-4-E4B-it-bf16.gguf",
         "chat_handler": "Gemma4ChatHandler",
         "default_quant": "Q8_0",   # ~4B eff: ~4.4 GB + ~1.5 GB mmproj ≈ 6 GB — fits 16 GB
         "n_ctx": 8192,
@@ -147,13 +147,13 @@ def resolve_model_paths(model_key: str, quant: str | None = None) -> dict:
         raise FileNotFoundError(
             f"GGUF model file not found: {model_path}\n"
             f"Run the download script first:\n"
-            f"  huggingface-cli download {spec['hf_repo']} --local-dir {base}"
+            f"  hf download {spec['hf_repo']} --local-dir {base}"
         )
     if not mmproj_path.exists():
         raise FileNotFoundError(
             f"Multimodal projector not found: {mmproj_path}\n"
             f"Run the download script first:\n"
-            f"  huggingface-cli download {spec['hf_repo']} --local-dir {base}"
+            f"  hf download {spec['hf_repo']} --local-dir {base}"
         )
 
     return {"model_path": model_path, "mmproj_path": mmproj_path}

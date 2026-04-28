@@ -38,7 +38,7 @@ hf download openbmb/MiniCPM-V-2_6-gguf MiniCPM-V-2_6-Q8_0.gguf --local-dir "F:\M
 
 # ── Gemma 4 E4B (gemma4e4b) ──
 # HuggingFace repo: https://huggingface.co/ggml-org/gemma-4-E4B-it-GGUF
-hf download ggml-org/gemma-4-E4B-it-GGUF mmproj-gemma-4-E4B-it-f16.gguf --local-dir "F:\Models\LLAMA\gemma-4-E4B-it"
+hf download ggml-org/gemma-4-E4B-it-GGUF mmproj-gemma-4-E4B-it-bf16.gguf --local-dir "F:\Models\LLAMA\gemma-4-E4B-it"
 hf download ggml-org/gemma-4-E4B-it-GGUF gemma-4-E4B-it-Q4_K_M.gguf --local-dir "F:\Models\LLAMA\gemma-4-E4B-it"
 hf download ggml-org/gemma-4-E4B-it-GGUF gemma-4-E4B-it-Q5_K_M.gguf --local-dir "F:\Models\LLAMA\gemma-4-E4B-it"
 hf download ggml-org/gemma-4-E4B-it-GGUF gemma-4-E4B-it-Q8_0.gguf --local-dir "F:\Models\LLAMA\gemma-4-E4B-it"

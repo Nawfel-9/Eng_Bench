@@ -1,7 +1,7 @@
 import re
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 
-from prompts.task_prompts import BASE_PROMPT, FORMAT_SUFFIXES
+from prompts.task_prompts import USER_PROMPT, FORMAT_SUFFIXES
 
 
 def infer_answer_format(question: str) -> str:
@@ -22,8 +22,9 @@ def infer_answer_format(question: str) -> str:
 
 
 def build_prompt(question: str, answer_format: str) -> str:
+    """Build the user-turn text: question body + format-specific suffix."""
     suffix = FORMAT_SUFFIXES.get(answer_format, FORMAT_SUFFIXES["other"])
-    return BASE_PROMPT.format(question=question.strip()) + suffix
+    return USER_PROMPT.format(question=question.strip()) + suffix
 
 
 def normalize_text(text: str) -> str:

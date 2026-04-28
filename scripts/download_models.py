@@ -38,7 +38,7 @@ def generate_commands() -> list[str]:
         commands.append(f"# ── {spec['display_name']} ({model_key}) ──")
         commands.append(f"# HuggingFace repo: https://huggingface.co/{hf_repo}")
 
-        # Multimodal projector (always fp16, download once)
+        # Multimodal projector (usually f16 or bf16, download once)
         mmproj = spec["mmproj_file"]
         commands.append(
             f'hf download {hf_repo} {mmproj}'

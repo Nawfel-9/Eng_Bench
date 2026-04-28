@@ -1,9 +1,12 @@
-BASE_PROMPT = (
-    "You are an expert electrical and electronics engineer solving a problem from a "
-    "technical diagram. Read the image carefully, use only the information visible "
-    "in the diagram and question, and avoid guessing beyond the evidence.\n\n"
-    "{question}\n\n"
+# Sent as the "system" role — establishes expert persona before the user turn.
+SYSTEM_PROMPT = (
+    "You are an expert electrical and electronics engineer. "
+    "When shown a technical diagram, read it carefully and use only the information "
+    "visible in the diagram and the question. Do not guess beyond the evidence."
 )
+
+# User-turn template — receives the raw question text.
+USER_PROMPT = "{question}\n\n"
 
 FORMAT_SUFFIXES = {
     "multiple_choice": (

@@ -21,21 +21,22 @@ from pathlib import Path
 
 # Allow running this file directly or as a module.
 try:
-    from models.registry import MODEL_REGISTRY, MODELS_ROOT, QUANT_OPTIONS
+    from models.registry import BENCHMARK_ORDER, MODEL_REGISTRY, MODELS_ROOT, QUANT_OPTIONS
 except ModuleNotFoundError:  # pragma: no cover
     sys.path.append(str(Path(__file__).resolve().parents[1]))
-    from models.registry import MODEL_REGISTRY, MODELS_ROOT, QUANT_OPTIONS
+    from models.registry import BENCHMARK_ORDER, MODEL_REGISTRY, MODELS_ROOT, QUANT_OPTIONS
 
 
 def generate_commands() -> list[str]:
     """Return a list of ``hf download`` shell commands."""
     commands: list[str] = []
 
-    for model_key, spec in MODEL_REGISTRY.items():
+    for model_key in BENCHMARK_ORDER:
+        spec = MODEL_REGISTRY[model_key]
         hf_repo = spec["hf_repo"]
         local_dir = MODELS_ROOT / spec["model_dir"]
 
-        commands.append(f"# ── {spec['display_name']} ({model_key}) ──")
+        commands.append(f"# -- {spec['display_name']} ({model_key}) --")
         commands.append(f"# HuggingFace repo: https://huggingface.co/{hf_repo}")
 
         # Multimodal projector (usually f16 or bf16, download once)
@@ -46,7 +47,7 @@ def generate_commands() -> list[str]:
         )
 
         # One GGUF per quantisation level
-        for quant in QUANT_OPTIONS:
+        for quant in spec.get("available_quants", QUANT_OPTIONS):
             gguf = spec["gguf_file"].format(quant=quant)
             commands.append(
                 f'hf download {hf_repo} {gguf}'
@@ -62,7 +63,7 @@ def write_powershell_script(path: Path, commands: list[str]) -> None:
     """Write *commands* as a PowerShell ``.ps1`` script."""
     lines = [
         "# ============================================================",
-        "# EEE_Bench — Download all GGUF models from HuggingFace",
+        "# EEE_Bench - Download all GGUF models from HuggingFace",
         "# ============================================================",
         "#",
         "# Prerequisites:",

@@ -63,9 +63,9 @@ This means the model sees not just the raw question, but:
 ### Step E: Send image + prompt to the model
 - Main runner: `run_benchmark.py`
 
-Each call goes through `LlamaCppRunner.infer()` in `run_benchmark.py`, which:
+Each call goes through the selected runner in `run_benchmark.py`, which:
 - Encodes the image as a base64 data URI
-- Sends it alongside the constructed prompt via `llm.create_chat_completion()`
+- Sends it alongside the constructed prompt via `llm.create_chat_completion()` for `llama-cpp-python` or `/v1/chat/completions` for `llama-server`
 - Uses `temperature=0` (greedy decoding) and `max_tokens=1024`
 
 So each query is multimodal: diagram image + constructed text prompt.

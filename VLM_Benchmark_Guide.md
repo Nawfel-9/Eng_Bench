@@ -15,7 +15,7 @@
 8. [Evaluation Metrics](#8-evaluation-metrics)
 9. [Running the Experiments](#9-running-the-experiments)
 10. [Results & Analysis](#10-results--analysis)
-11. [Optional: Fine-tuning Qwen2.5-VL on EEE_Bench](#11-optional-fine-tuning-qwen25-vl-on-eee_bench)
+11. [Optional: Fine-tuning Qwen3-VL on EEE_Bench](#11-optional-fine-tuning-qwen3-vl-on-eee_bench)
 12. [Project File Structure](#12-project-file-structure)
 
 ---
@@ -31,7 +31,7 @@ The goal is to systematically evaluate **local vision-language models (VLMs)** o
 | **Specification Q&A** | Answer questions about specs, values, and annotations |
 | **Anomaly Detection** | Spot errors, inconsistencies, or missing elements |
 
-All inference runs through **llama.cpp** via the [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) library using locally stored GGUF model files.
+Inference runs through **llama.cpp** via [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) or an OpenAI-compatible `llama-server`, using locally stored GGUF model files.
 
 Dataset structure:
 ```
@@ -133,22 +133,21 @@ python scripts/split_dataset.py
 
 ## 5. Model Selection for 16 GB VRAM
 
-All models are loaded through a single `LlamaCppRunner` using `llama-cpp-python`. Each model directory (under `F:\Models\LLAMA\`) contains one or more quantised GGUF files and a multimodal projector (`mmproj-*-f16.gguf`).
+All models can run through either `llama-cpp-python` or an OpenAI-compatible `llama-server`. Each model directory (under `F:\Models\LLAMA\`) contains one or more quantised GGUF files and a multimodal projector (`mmproj-*-f16.gguf`).
 
 The `default_quant` per model is chosen as the highest quality level whose total VRAM footprint (model GGUF + mmproj ≈ 1–2 GB) fits safely within 16 GB:
 
 | Key | Display Name | Params | Default Quant | Est. VRAM | Chat Handler |
 |-----|--------------|--------|---------------|-----------|--------------|
-| `phi35v` | Phi-3.5-Vision-Instruct | 3.8B | **Q8_0** | ~5 GB | Llava15ChatHandler |
+| `qwen3vl4b` | Qwen3-VL 4B Instruct | 4B | **Q8_0** | ~4.8 GB | Qwen3VLChatHandler |
 | `gemma4e4b` | Gemma 4 E4B | ~4B eff. | **Q8_0** | ~6 GB | Gemma4ChatHandler |
 | `minicpmv` | MiniCPM-V 2.6 8B | 8B | **Q8_0** | ~10 GB | MiniCPMv26ChatHandler |
-| `qwen25vl` | Qwen2.5-VL 7B Instruct | 7B | **Q8_0** | ~9 GB | Qwen25VLChatHandler |
-| `internvl3` | InternVL3 8B Instruct | 8B | **Q8_0** | ~10 GB | Llava15ChatHandler |
-| `glm4v` | GLM-4.1V-9B-Thinking | 9B | **Q8_0** | ~11 GB | Llava15ChatHandler |
-| `llama32v` | Llama 3.2 Vision 11B | 11B | **Q5_K_M** | ~9 GB | Llava15ChatHandler |
-| `pixtral` | Pixtral 12B | 12B | **Q5_K_M** | ~10 GB | Llava15ChatHandler |
+| `qwen3vl8b` | Qwen3-VL 8B Instruct | 8B | **Q8_0** | ~9.2 GB | Qwen3VLChatHandler |
+| `internvl35` | InternVL3.5 8B Instruct | 8.5B | **Q8_0** | ~8.7 GB | Llava15ChatHandler |
+| `llama32v` | Llama 3.2 Vision 11B | 11B | **Q8_0** | ~11.5 GB | Llava15ChatHandler |
+| `pixtral` | Pixtral 12B | 12B | **Q8_0** | ~13 GB | Llava15ChatHandler |
 
-> **Why Q5_K_M for the two largest models?** Llama 11B and Pixtral 12B at Q8_0 would consume ~13–14 GB, leaving no headroom for the OS and KV cache. Q5_K_M keeps them safely under 11 GB total.
+> **Why Q8_0 for the largest models?** Llama 11B and Pixtral 12B remain under 16 GB when loaded one at a time with their multimodal projectors, so the defaults prioritize quality.
 
 ### Quantisation levels available
 
@@ -172,16 +171,16 @@ GGUF files are downloaded from HuggingFace and stored at `F:\Models\LLAMA\`.
 .\scripts\download_all_models.ps1
 ```
 
-This script uses the `hf` CLI to download all 8 models at all 3 quantisation levels plus their multimodal projectors. Comment out any models or quants you don't need.
+This script uses the `hf` CLI to download all supported models at their published quantisation levels plus their multimodal projectors. Comment out any models or quants you don't need.
 
 ### Option B: Download a specific model
 
 ```bash
-# Example: download only Qwen2.5-VL at Q8_0
-hf download ggml-org/Qwen2.5-VL-7B-Instruct-GGUF \
-    Qwen2.5-VL-7B-Instruct-Q8_0.gguf \
-    mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf \
-    --local-dir "F:\Models\LLAMA\Qwen2.5-VL-7B-Instruct"
+# Example: download only Qwen3-VL 8B at Q8_0
+hf download Qwen/Qwen3-VL-8B-Instruct-GGUF \
+    Qwen3VL-8B-Instruct-Q8_0.gguf \
+    mmproj-Qwen3VL-8B-Instruct-F16.gguf \
+    --local-dir "F:\Models\LLAMA\Qwen3-VL-8B-Instruct"
 ```
 
 ### Option C: Regenerate the download script from the registry
@@ -195,17 +194,12 @@ python scripts/download_models.py --output scripts/download_all_models.ps1  # wr
 
 ```
 F:\Models\LLAMA\
-├── Qwen2.5-VL-7B-Instruct\
-│   ├── Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf
-│   ├── Qwen2.5-VL-7B-Instruct-Q5_K_M.gguf
-│   ├── Qwen2.5-VL-7B-Instruct-Q8_0.gguf
-│   └── mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf
+├── Qwen3-VL-4B-Instruct\
+├── Qwen3-VL-8B-Instruct\
 ├── Llama-3.2-11B-Vision-Instruct\
 ├── MiniCPM-V-2_6\
 ├── gemma-4-E4B-it\
-├── InternVL3-8B-Instruct\
-├── GLM-4.1V-9B-Thinking\
-├── Phi-3.5-vision-instruct\
+├── InternVL3_5-8B\
 └── pixtral-12b\
 ```
 
@@ -218,15 +212,15 @@ F:\Models\LLAMA\
 The `MODEL_REGISTRY` dict maps short model keys to their GGUF configuration:
 
 ```python
-MODEL_REGISTRY["qwen25vl"] = {
-    "display_name": "Qwen2.5-VL 7B Instruct",
-    "model_dir":    "Qwen2.5-VL-7B-Instruct",       # subdirectory under F:\Models\LLAMA
-    "gguf_file":    "Qwen2.5-VL-7B-Instruct-{quant}.gguf",
-    "mmproj_file":  "mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf",
-    "chat_handler": "Qwen25VLChatHandler",            # llama-cpp-python handler class
+MODEL_REGISTRY["qwen3vl8b"] = {
+    "display_name": "Qwen3-VL 8B Instruct",
+    "model_dir":    "Qwen3-VL-8B-Instruct",        # subdirectory under F:\Models\LLAMA
+    "gguf_file":    "Qwen3VL-8B-Instruct-{quant}.gguf",
+    "mmproj_file":  "mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+    "chat_handler": "Qwen3VLChatHandler",          # llama-cpp-python handler class
     "default_quant": "Q8_0",
     "n_ctx":        8192,
-    "hf_repo":      "ggml-org/Qwen2.5-VL-7B-Instruct-GGUF",
+    "hf_repo":      "Qwen/Qwen3-VL-8B-Instruct-GGUF",
 }
 ```
 
@@ -250,11 +244,21 @@ Each question goes through a structured pipeline:
 
 ### 7.3 Inference runner (`run_benchmark.py`)
 
-`LlamaCppRunner` handles model loading and inference:
+`run_benchmark.py` supports two inference backends: in-process `llama-cpp-python` and an OpenAI-compatible `llama-server` HTTP endpoint. `LlamaCppRunner` handles local model loading and inference:
 
 ```python
 class LlamaCppRunner:
-    def __init__(self, model_key, quant=DEFAULT_QUANT, max_tokens=1024, temperature=0.0):
+    def __init__(
+        self,
+        model_key,
+        quant=DEFAULT_QUANT,
+        max_tokens=1024,
+        temperature=0.0,
+        logits_all=False,
+        flash_attn=True,
+        n_batch=1024,
+        n_ubatch=256,
+    ):
         spec = MODEL_REGISTRY[model_key]
         paths = resolve_model_paths(model_key, quant)
 
@@ -266,12 +270,15 @@ class LlamaCppRunner:
             chat_handler=chat_handler,
             n_gpu_layers=-1,    # offload all layers to GPU
             n_ctx=spec.get("n_ctx", 8192),
-            logits_all=True,
+            n_batch=n_batch,
+            n_ubatch=n_ubatch,
+            flash_attn=flash_attn,
+            logits_all=logits_all,
             verbose=False,
         )
 ```
 
-For each sample, the image is encoded as a base64 data URI and sent alongside the prompt:
+For each sample, the image is encoded as a base64 data URI and sent alongside the prompt. The same OpenAI-style multimodal message shape is used for both backends:
 
 ```python
 def infer(self, image_path: str, prompt: str) -> str:
@@ -288,6 +295,20 @@ def infer(self, image_path: str, prompt: str) -> str:
         temperature=self.temperature,
     )
 ```
+
+For `llama-server`, start the server separately and then use `--backend llama-server`:
+
+```powershell
+llama-server `
+    -m "F:\Models\LLAMA\Qwen3-VL-8B-Instruct\Qwen3VL-8B-Instruct-Q8_0.gguf" `
+    --mmproj "F:\Models\LLAMA\Qwen3-VL-8B-Instruct\mmproj-Qwen3VL-8B-Instruct-F16.gguf" `
+    -ngl -1 -c 8192 --flash-attn --batch-size 1024 --ubatch-size 256 `
+    --host 127.0.0.1 --port 8080
+
+python run_benchmark.py --model qwen3vl8b --backend llama-server --server-url http://127.0.0.1:8080/v1
+```
+
+Runs are resumable by default. Existing result rows are skipped, and progress is written after each sample. `llama-server` results use `results/<model_key>_server_results.json`.
 
 ### 7.4 Answer extraction (`scripts/benchmark_utils.py`)
 
@@ -317,7 +338,7 @@ Computed by `evaluate_results.py`:
 | **ROUGE-L** | Longest common subsequence F-measure |
 | **Error Rate** | Percentage of samples that returned an error |
 
-Results per sample are saved to `results/<model_key>_results.json`, and a scored CSV is written to `results/<model_key>_results_scored.csv`.
+Results per sample are saved to `results/<model_key>_results.json` for `llama-cpp-python` or `results/<model_key>_server_results.json` for `llama-server`, and scored CSV files are written by `evaluate_results.py`.
 
 ---
 
@@ -335,16 +356,15 @@ python scripts/validate_images.py
 python scripts/split_dataset.py
 
 # Step 3 — smoke test on 20 samples with the fastest model
-python run_benchmark.py --model phi35v --split EEE_Bench/dev_split.csv --max 20
-python evaluate_results.py --results results/phi35v_results.json
+python run_benchmark.py --model qwen3vl4b --split EEE_Bench/dev_split.csv --max 20
+python evaluate_results.py --results results/qwen3vl4b_results.json
 
 # Step 4 — full benchmark, one model at a time (lightest to heaviest)
-python run_benchmark.py --model phi35v    --split EEE_Bench/test_split.csv
+python run_benchmark.py --model qwen3vl4b --split EEE_Bench/test_split.csv
 python run_benchmark.py --model gemma4e4b --split EEE_Bench/test_split.csv
 python run_benchmark.py --model minicpmv  --split EEE_Bench/test_split.csv
-python run_benchmark.py --model qwen25vl  --split EEE_Bench/test_split.csv
-python run_benchmark.py --model internvl3 --split EEE_Bench/test_split.csv
-python run_benchmark.py --model glm4v     --split EEE_Bench/test_split.csv
+python run_benchmark.py --model qwen3vl8b --split EEE_Bench/test_split.csv
+python run_benchmark.py --model internvl35 --split EEE_Bench/test_split.csv
 python run_benchmark.py --model llama32v  --split EEE_Bench/test_split.csv
 python run_benchmark.py --model pixtral   --split EEE_Bench/test_split.csv
 
@@ -364,6 +384,18 @@ python plot_results.py     # reads results/model_comparison.csv, writes results/
 | `--output` | `results` | Output directory for result JSONs |
 | `--quant` | *(model's default_quant)* | Override quantisation: `Q4_K_M`, `Q5_K_M`, `Q8_0` |
 | `--max` | *(all samples)* | Limit sample count (for debugging / smoke tests) |
+| `--backend` | `llama-cpp-python` | `llama-cpp-python` or `llama-server` |
+| `--max-tokens` | `1024` | Maximum generated tokens per sample |
+| `--temperature` | `0.0` | Sampling temperature |
+| `--logits-all` | `false` | Enable `logits_all`; disabled by default to save memory |
+| `--no-flash-attn` | `false` | Disable flash attention for `llama-cpp-python` |
+| `--n-batch` | `1024` | Prompt batch size for `llama-cpp-python` |
+| `--n-ubatch` | `256` | Physical micro-batch size for `llama-cpp-python` |
+| `--server-url` | `http://127.0.0.1:8080/v1` | OpenAI-compatible llama-server base URL |
+| `--server-model` | *(model key)* | Model name sent to llama-server |
+| `--server-api-key` | `sk-no-key` | Bearer token if llama-server requires one |
+| `--server-timeout` | `300` | HTTP timeout in seconds |
+| `--no-resume` | `false` | Ignore existing JSON and start from scratch |
 
 ### 9.3 Monitor VRAM
 
@@ -409,9 +441,9 @@ python plot_results.py
 
 ---
 
-## 11. Optional: Fine-tuning Qwen2.5-VL on EEE_Bench
+## 11. Optional: Fine-tuning Qwen3-VL on EEE_Bench
 
-As shown in the reference paper, fine-tuning a VLM on ~800 domain-specific samples closes most of the gap to GPT-4o at a fraction of the cost. Qwen2.5-VL-7B is the recommended candidate — it is the strongest 7B VLM and has good QLoRA support. Fine-tuning is done via **transformers + PEFT** (not llama.cpp, which is inference-only).
+As shown in the reference paper, fine-tuning a VLM on ~800 domain-specific samples closes most of the gap to GPT-4o at a fraction of the cost. Qwen3-VL-8B is the recommended candidate for this benchmark suite because it is the strongest Qwen VLM in the current 16 GB-friendly set and has good document/OCR coverage. Fine-tuning is done via **transformers + PEFT** (not llama.cpp, which is inference-only).
 
 ### 11.1 Install fine-tuning dependencies
 
@@ -447,7 +479,7 @@ print(f"Fine-tuning samples: {len(train_data)}")
 ### 11.3 Fine-tune with QLoRA
 
 ```python
-# finetune_qwen25vl.py
+# finetune_qwen3vl.py
 from transformers import Qwen2VLForConditionalGeneration, AutoProcessor, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
 from trl import SFTConfig
@@ -460,11 +492,11 @@ bnb_config = BitsAndBytesConfig(
     bnb_4bit_compute_dtype=torch.float16
 )
 model = Qwen2VLForConditionalGeneration.from_pretrained(
-    "Qwen/Qwen2.5-VL-7B-Instruct",
+    "Qwen/Qwen3-VL-8B-Instruct",
     quantization_config=bnb_config,
     device_map="cuda"
 )
-processor = AutoProcessor.from_pretrained("Qwen/Qwen2.5-VL-7B-Instruct")
+processor = AutoProcessor.from_pretrained("Qwen/Qwen3-VL-8B-Instruct")
 
 # LoRA — target attention and MLP projection layers
 lora_config = LoraConfig(
@@ -479,7 +511,7 @@ model = get_peft_model(model, lora_config)
 model.print_trainable_parameters()
 
 training_args = SFTConfig(
-    output_dir="checkpoints/qwen25vl-eee",
+    output_dir="checkpoints/qwen3vl-eee",
     num_train_epochs=3,
     per_device_train_batch_size=1,
     gradient_accumulation_steps=8,
@@ -496,7 +528,7 @@ training_args = SFTConfig(
 
 > After fine-tuning, export the merged model to GGUF and load it through the same llama-cpp-python pipeline:
 > ```bash
-> python llama.cpp/convert_hf_to_gguf.py checkpoints/qwen25vl-eee --outtype q8_0
+> python llama.cpp/convert_hf_to_gguf.py checkpoints/qwen3vl-eee --outtype q8_0
 > ```
 > Then add a new entry to `models/registry.py` and run the benchmark normally.
 
@@ -544,13 +576,12 @@ Prototype/
 All GGUF model files are stored at:
 ```
 F:\Models\LLAMA\
-├── Qwen2.5-VL-7B-Instruct\
+├── Qwen3-VL-4B-Instruct\
+├── Qwen3-VL-8B-Instruct\
 ├── Llama-3.2-11B-Vision-Instruct\
 ├── MiniCPM-V-2_6\
 ├── gemma-4-E4B-it\
-├── InternVL3-8B-Instruct\
-├── GLM-4.1V-9B-Thinking\
-├── Phi-3.5-vision-instruct\
+├── InternVL3_5-8B\
 └── pixtral-12b\
 ```
 
@@ -573,16 +604,15 @@ python scripts/build_index.py
 python scripts/split_dataset.py
 
 # 4. Sanity check (20 samples, fastest model)
-python run_benchmark.py --model phi35v --max 20
-python evaluate_results.py --results results/phi35v_results.json
+python run_benchmark.py --model qwen3vl4b --max 20
+python evaluate_results.py --results results/qwen3vl4b_results.json
 
 # 5. Full benchmark (lightest to heaviest)
-python run_benchmark.py --model phi35v    --split EEE_Bench/test_split.csv
+python run_benchmark.py --model qwen3vl4b --split EEE_Bench/test_split.csv
 python run_benchmark.py --model gemma4e4b --split EEE_Bench/test_split.csv
 python run_benchmark.py --model minicpmv  --split EEE_Bench/test_split.csv
-python run_benchmark.py --model qwen25vl  --split EEE_Bench/test_split.csv
-python run_benchmark.py --model internvl3 --split EEE_Bench/test_split.csv
-python run_benchmark.py --model glm4v     --split EEE_Bench/test_split.csv
+python run_benchmark.py --model qwen3vl8b --split EEE_Bench/test_split.csv
+python run_benchmark.py --model internvl35 --split EEE_Bench/test_split.csv
 python run_benchmark.py --model llama32v  --split EEE_Bench/test_split.csv
 python run_benchmark.py --model pixtral   --split EEE_Bench/test_split.csv
 
@@ -593,4 +623,4 @@ python plot_results.py
 
 ---
 
-*Start with `phi35v --max 20` to verify the full pipeline end-to-end, then run all 8 models in order from lightest to heaviest.*
+*Start with `qwen3vl4b --max 20` to verify the full pipeline end-to-end, then run all 7 models in order from lightest to heaviest.*

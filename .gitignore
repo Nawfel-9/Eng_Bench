@@ -23,6 +23,7 @@ venv.bak/
 # Ignore raw model outputs to save repo space, but keep aggregated CSVs
 results/
 EEE_Bench/
+scripts/download_all_models.ps1
 # Ignore downloaded models (just in case they are placed in the repo)
 *.gguf
 

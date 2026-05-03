@@ -1,6 +1,6 @@
 # EEE_Bench — Vision-Language Model Benchmark for Technical Document Analysis
 
-A benchmarking framework for evaluating **local vision-language models (VLMs)** on the **EEE_Bench** dataset — a collection of electrical and electronics engineering technical diagrams paired with question-answer items.  All inference runs through **llama.cpp** via the [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) library using locally stored GGUF model files.
+A benchmarking framework for evaluating **local vision-language models (VLMs)** on the **EEE_Bench** dataset — a collection of electrical and electronics engineering technical diagrams paired with question-answer items.  Inference runs through **llama.cpp** either in-process via [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) or over HTTP via an OpenAI-compatible `llama-server`, using locally stored GGUF model files.
 
 ---
 
@@ -28,7 +28,7 @@ The benchmark evaluates how well different VLMs can understand and reason about 
 
 1. Infers the expected **answer format** from the question text (multiple-choice, float, integer, array, or free-form).
 2. Wraps the question in a **controlled prompt** with an expert-role instruction and a strict final-line output rule.
-3. Sends the image + prompt to a **local GGUF model** via `llama-cpp-python`.
+3. Sends the image + prompt to a **local GGUF model** via `llama-cpp-python` or an OpenAI-compatible `llama-server`.
 4. Extracts a **clean final answer** from the model's output using deterministic parsing.
 5. Scores the answer against the ground truth using multiple metrics (exact match, contains, token F1, BLEU, ROUGE-L, and the primary **final-answer accuracy**).
 
@@ -44,7 +44,7 @@ The benchmark evaluates how well different VLMs can understand and reason about 
 | **OS**          | Windows 10/11   | Windows 11       |
 | **Python**      | 3.10            | 3.11+            |
 
-> **Note**: All 8 models at Q4\_K\_M fit within 16 GB VRAM.  Larger quantisations (Q8\_0) for the 11–12 B models may require swapping between runs.
+> **Note**: All 7 supported models at their default quantisation fit within 16 GB VRAM.
 
 ---
 
@@ -91,13 +91,12 @@ All GGUF model files are stored at:
 
 ```
 F:\Models\LLAMA\
-├── Qwen2.5-VL-7B-Instruct/
+├── Qwen3-VL-4B-Instruct/
+├── Qwen3-VL-8B-Instruct/
 ├── Llama-3.2-11B-Vision-Instruct/
 ├── MiniCPM-V-2_6/
 ├── gemma-4-E4B-it/
-├── InternVL3-8B-Instruct/
-├── GLM-4.1V-9B-Thinking/
-├── Phi-3.5-vision-instruct/
+├── InternVL3_5-8B/
 └── pixtral-12b/
 ```
 
@@ -109,18 +108,16 @@ Each model directory contains:
 
 ## Supported Models
 
-All models are loaded through a single `LlamaCppRunner` using `llama-cpp-python`. The default quantization levels shown below are optimized specifically for an **RTX 5060 Ti with 16 GB VRAM**, maximizing quality while safely avoiding out-of-memory errors.
+All models can run through either `llama-cpp-python` or an OpenAI-compatible `llama-server`. The default quantization levels shown below are optimized for a **16 GB VRAM GPU** by choosing the highest published GGUF quant that leaves comfortable headroom for the model, multimodal projector, and runtime overhead.
 
-| Key         | Display Name              | Parameters | Default Quant | Chat Handler             | HuggingFace GGUF Repo                                          |
-|-------------|---------------------------|------------|---------------|--------------------------|------------------------------------------------------------------|
-| `phi35v`    | Phi-3.5-Vision-Instruct   | 3.8 B      | Q8\_0         | Llava15ChatHandler       | `abetlen/Phi-3.5-vision-instruct-gguf`                          |
-| `gemma4e4b` | Gemma 4 E4B               | ~4 B eff.  | Q8\_0         | Gemma4ChatHandler        | `ggml-org/gemma-4-E4B-it-GGUF`                                  |
-| `minicpmv`  | MiniCPM-V 2.6 8B          | 8 B        | Q8\_0         | MiniCPMv26ChatHandler    | `openbmb/MiniCPM-V-2_6-gguf`                                    |
-| `qwen25vl`  | Qwen2.5-VL 7B Instruct    | 7 B        | Q8\_0         | Qwen25VLChatHandler      | `ggml-org/Qwen2.5-VL-7B-Instruct-GGUF`                          |
-| `internvl3` | InternVL3 8B Instruct     | 8 B        | Q8\_0         | Llava15ChatHandler       | `ggml-org/InternVL3-8B-Instruct-GGUF`                           |
-| `glm4v`     | GLM-4.1V-9B-Thinking      | 9 B        | Q8\_0         | Llava15ChatHandler       | `mradermacher/GLM-4.1V-9B-Thinking-GGUF`                        |
-| `llama32v`  | Llama 3.2 Vision 11B      | 11 B       | Q5\_K\_M      | Llava15ChatHandler       | `ggml-org/Llama-3.2-11B-Vision-Instruct-GGUF`                   |
-| `pixtral`   | Pixtral 12B               | 12 B       | Q5\_K\_M      | Llava15ChatHandler       | `ggml-org/pixtral-12b-GGUF`                                     |
+| Key         | Display Name              | Parameters | Default Quant | Est. GGUF + mmproj | Chat Handler             | HuggingFace GGUF Repo                                          |
+|-------------|---------------------------|------------|---------------|--------------------|--------------------------|------------------------------------------------------------------|
+| `gemma4e4b` | Gemma 4 E4B               | ~4 B eff.  | Q8\_0         | ~8.40 GiB          | Gemma4ChatHandler        | `ggml-org/gemma-4-E4B-it-GGUF`                                  |
+| `minicpmv`  | MiniCPM-V 2.6 8B          | 8 B        | Q8\_0         | ~8.51 GiB          | MiniCPMv26ChatHandler    | `openbmb/MiniCPM-V-2_6-gguf`                                    |
+| `qwen3vl8b` | Qwen3-VL 8B Instruct      | 8 B        | Q8\_0         | ~9.19 GiB          | Qwen3VLChatHandler       | `Qwen/Qwen3-VL-8B-Instruct-GGUF`                                |
+| `internvl35`| InternVL3.5 8B Instruct   | 8.5 B      | Q8\_0         | ~8.74 GiB          | Llava15ChatHandler       | `lmstudio-community/InternVL3_5-8B-GGUF`                        |
+| `llama32v`  | Llama 3.2 Vision 11B      | 11 B       | Q8\_0         | ~11.49 GiB         | Llava15ChatHandler       | `leafspark/Llama-3.2-11B-Vision-Instruct-GGUF`                  |
+| `pixtral`   | Pixtral 12B               | 12 B       | Q8\_0         | ~12.94 GiB         | Llava15ChatHandler       | `ggml-org/pixtral-12b-GGUF`                                     |
 
 ### Quantisation Options
 
@@ -172,16 +169,16 @@ GGUF model files are downloaded from HuggingFace and stored at `F:\Models\LLAMA\
 .\scripts\download_all_models.ps1
 ```
 
-This downloads **all 8 models** at **all 3 quantisation levels** plus their multimodal projectors.  Comment out any models or quants you don't need.
+This downloads all supported models at their published quantisation levels plus their multimodal projectors.  Comment out any models or quants you don't need.
 
 ### Option B: Download a specific model
 
 ```bash
-# Example: download only Qwen2.5-VL at Q4_K_M
-hf download ggml-org/Qwen2.5-VL-7B-Instruct-GGUF \
-    Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf \
-    mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf \
-    --local-dir "F:\Models\LLAMA\Qwen2.5-VL-7B-Instruct"
+# Example: download only Qwen3-VL 8B at Q8_0
+hf download Qwen/Qwen3-VL-8B-Instruct-GGUF \
+    Qwen3VL-8B-Instruct-Q8_0.gguf \
+    mmproj-Qwen3VL-8B-Instruct-F16.gguf \
+    --local-dir "F:\Models\LLAMA\Qwen3-VL-8B-Instruct"
 ```
 
 ### Option C: Generate commands programmatically
@@ -234,7 +231,21 @@ python scripts/split_dataset.py
 ### Basic usage
 
 ```bash
-python run_benchmark.py --model qwen25vl --split EEE_Bench/test_split.csv
+python run_benchmark.py --model qwen3vl8b --split EEE_Bench/test_split.csv
+```
+
+### OpenAI-compatible llama-server backend
+
+Start `llama-server` separately with the same GGUF model and multimodal projector, then point the benchmark at its OpenAI-compatible `/v1/chat/completions` endpoint:
+
+```powershell
+llama-server `
+    -m "F:\Models\LLAMA\Qwen3-VL-8B-Instruct\Qwen3VL-8B-Instruct-Q8_0.gguf" `
+    --mmproj "F:\Models\LLAMA\Qwen3-VL-8B-Instruct\mmproj-Qwen3VL-8B-Instruct-F16.gguf" `
+    -ngl -1 -c 8192 --flash-attn --batch-size 1024 --ubatch-size 256 `
+    --host 127.0.0.1 --port 8080
+
+python run_benchmark.py --model qwen3vl8b --backend llama-server --server-url http://127.0.0.1:8080/v1
 ```
 
 ### All CLI options
@@ -244,24 +255,36 @@ python run_benchmark.py --model qwen25vl --split EEE_Bench/test_split.csv
 | `--model`  | *(required)*                 | Model key from the registry                      |
 | `--split`  | `EEE_Bench/test_split.csv`   | Path to the CSV split file                       |
 | `--output` | `results`                    | Output directory for result JSONs                |
-| `--quant`  | `Q4_K_M`                     | Quantisation level: `Q4_K_M`, `Q5_K_M`, `Q8_0`  |
+| `--quant`  | `Q8_0`                       | Quantisation level: `Q4_K_M`, `Q5_K_M`, `Q8_0`  |
 | `--max`    | *(all samples)*              | Limit sample count (for debugging / smoke tests) |
+| `--backend`| `llama-cpp-python`           | `llama-cpp-python` or `llama-server`             |
+| `--max-tokens` | `1024`                   | Maximum generated tokens per sample              |
+| `--temperature` | `0.0`                  | Sampling temperature                             |
+| `--logits-all` | `false`                 | Enable `logits_all`; disabled by default to save memory |
+| `--no-flash-attn` | `false`              | Disable flash attention for `llama-cpp-python`   |
+| `--n-batch` | `1024`                    | Prompt batch size for `llama-cpp-python`         |
+| `--n-ubatch` | `256`                   | Physical micro-batch size for `llama-cpp-python` |
+| `--server-url` | `http://127.0.0.1:8080/v1` | OpenAI-compatible llama-server base URL      |
+| `--server-model` | *(model key)*         | Model name sent to llama-server                  |
+| `--server-api-key` | `sk-no-key`         | Bearer token if llama-server requires one        |
+| `--server-timeout` | `300`               | HTTP timeout in seconds                          |
+| `--no-resume` | `false`                  | Ignore existing JSON and start from scratch      |
+
+By default, benchmark runs are resumable: existing rows in `results/<model>_results.json` are skipped, and progress is written after each sample. The `llama-server` backend writes to `results/<model>_server_results.json` so local and HTTP runs do not overwrite each other.
 
 ### Smoke test on the dev set
 
 ```bash
-python run_benchmark.py --model phi35v --split EEE_Bench/dev_split.csv --max 20 --quant Q4_K_M
+python run_benchmark.py --model qwen3vl8b --split EEE_Bench/dev_split.csv --max 20
 ```
 
 ### Full benchmark run (all models, lightest → heaviest)
 
 ```bash
-python run_benchmark.py --model phi35v    --split EEE_Bench/test_split.csv
 python run_benchmark.py --model gemma4e4b --split EEE_Bench/test_split.csv
 python run_benchmark.py --model minicpmv  --split EEE_Bench/test_split.csv
-python run_benchmark.py --model qwen25vl  --split EEE_Bench/test_split.csv
-python run_benchmark.py --model internvl3 --split EEE_Bench/test_split.csv
-python run_benchmark.py --model glm4v     --split EEE_Bench/test_split.csv
+python run_benchmark.py --model qwen3vl8b --split EEE_Bench/test_split.csv
+python run_benchmark.py --model internvl35 --split EEE_Bench/test_split.csv
 python run_benchmark.py --model llama32v  --split EEE_Bench/test_split.csv
 python run_benchmark.py --model pixtral   --split EEE_Bench/test_split.csv
 ```
@@ -275,12 +298,12 @@ python run_benchmark.py --model pixtral   --split EEE_Bench/test_split.csv
 Score a single model's results JSON:
 
 ```bash
-python evaluate_results.py --results results/qwen25vl_results.json
+python evaluate_results.py --results results/qwen3vl8b_results.json
 ```
 
 **Output**:
 - Prints per-sample and aggregate metrics to stdout
-- Writes `results/qwen25vl_results_scored.csv`
+- Writes `results/qwen3vl8b_results_scored.csv`
 
 ### Metrics computed
 
@@ -338,7 +361,7 @@ Each question goes through a structured pipeline before being sent to the model:
    - The raw question text
    - A format-specific suffix ("On the last line, write only the final option letter.")
 4. **Encode the image** as a base64 data URI.
-5. **Send** both to the model via `llm.create_chat_completion()`.
+5. **Send** both to the selected backend: `llm.create_chat_completion()` for `llama-cpp-python`, or `/v1/chat/completions` for `llama-server`.
 6. **Parse** the model's output to extract a clean final answer using deterministic regex rules.
 
 See [LLM_Question_Pipeline.md](LLM_Question_Pipeline.md) for the full technical breakdown and flowchart, and [VLM_Benchmark_Guide.md](VLM_Benchmark_Guide.md) for the complete end-to-end project guide (environment setup, model selection, experiment execution, and results analysis).
@@ -352,15 +375,15 @@ See [LLM_Question_Pipeline.md](LLM_Question_Pipeline.md) for the full technical 
 The `MODEL_REGISTRY` dict maps short model keys to their configuration:
 
 ```python
-MODEL_REGISTRY["qwen25vl"] = {
-    "display_name": "Qwen2.5-VL 7B Instruct",
-    "model_dir":    "Qwen2.5-VL-7B-Instruct",       # subdirectory under F:\Models\LLAMA
-    "gguf_file":    "Qwen2.5-VL-7B-Instruct-{quant}.gguf",
-    "mmproj_file":  "mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf",
-    "chat_handler": "Qwen25VLChatHandler",            # llama-cpp-python handler class
-    "default_quant":"Q4_K_M",
+MODEL_REGISTRY["qwen3vl8b"] = {
+    "display_name": "Qwen3-VL 8B Instruct",
+    "model_dir":    "Qwen3-VL-8B-Instruct",        # subdirectory under F:\Models\LLAMA
+    "gguf_file":    "Qwen3VL-8B-Instruct-{quant}.gguf",
+    "mmproj_file":  "mmproj-Qwen3VL-8B-Instruct-F16.gguf",
+    "chat_handler": "Qwen3VLChatHandler",          # llama-cpp-python handler class
+    "default_quant":"Q8_0",
     "n_ctx":        8192,
-    "hf_repo":      "ggml-org/Qwen2.5-VL-7B-Instruct-GGUF",
+    "hf_repo":      "Qwen/Qwen3-VL-8B-Instruct-GGUF",
 }
 ```
 
@@ -371,7 +394,7 @@ MODEL_REGISTRY["qwen25vl"] = {
 | `MODELS_ROOT`    | `F:\Models\LLAMA`   | Root directory for all GGUF files     |
 | `DEFAULT_QUANT`  | `Q8_0`              | Default quantisation when not specified |
 | `QUANT_OPTIONS`  | `Q4_K_M`, `Q5_K_M`, `Q8_0` | Supported quantisation levels |
-| `BENCHMARK_ORDER`| *(8 model keys)*    | Canonical ordering for benchmark runs |
+| `BENCHMARK_ORDER`| *(7 model keys)*    | Canonical ordering for benchmark runs |
 
 ### Prompt templates (`prompts/task_prompts.py`)
 
